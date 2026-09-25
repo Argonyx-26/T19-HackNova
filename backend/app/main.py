@@ -10,12 +10,18 @@ if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
 from backend.app.core.config import settings
+from backend.app.db.mongodb import db_manager
+from backend.app.db.indexes import ensure_indexes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup lifecycle
+    connected = db_manager.connect()
+    if connected:
+        ensure_indexes(db_manager)
     yield
     # Shutdown lifecycle
+    db_manager.close()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -42,7 +48,7 @@ def health_check():
         "tagline": settings.PROJECT_TAGLINE,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
-        "database": "configured",
+        "database": "connected" if db_manager.is_connected else "simulated_storage",
     }
 
 if __name__ == "__main__":
