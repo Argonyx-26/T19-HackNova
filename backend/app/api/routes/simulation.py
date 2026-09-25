@@ -82,7 +82,7 @@ def run_scenario_stream():
     sim_state.running = False
 
 @router.post("/start")
-def start_simulation(request: SimulationStartRequest):
+def start_simulation(request: SimulationStartRequest = SimulationStartRequest()):
     """Trigger the live demonstration scenario streamer."""
     if sim_state.running:
         return {"status": "already_running", "message": "Simulation is already active"}
