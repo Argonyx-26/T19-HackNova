@@ -10,9 +10,11 @@ from backend.app.schemas.situation import (
 )
 from backend.app.schemas.prediction import PredictionResponse
 from backend.app.schemas.intervention import SimulationRequest, SimulationResponse
+from backend.app.schemas.recommendation import DecisionSupportResponse
 from backend.app.services.situation_service import situation_service
 from backend.app.services.prediction_service import prediction_service
 from backend.app.services.intervention_service import intervention_service
+from backend.app.services.recommendation_service import recommendation_service
 
 router = APIRouter(prefix="/api/situations", tags=["Situations"])
 
@@ -70,3 +72,11 @@ def simulate_intervention(situation_id: str, request: SimulationRequest):
     if not sim:
         raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found for simulation")
     return SimulationResponse(**sim.model_dump())
+
+@router.get("/{situation_id}/recommendation", response_model=DecisionSupportResponse)
+def get_situation_recommendation(situation_id: str):
+    """Retrieve decision-support recommendation comparing counterfactual actions."""
+    rec = recommendation_service.get_or_generate_recommendation(situation_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found for recommendation")
+    return DecisionSupportResponse(**rec.model_dump())
