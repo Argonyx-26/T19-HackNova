@@ -9,8 +9,10 @@ from backend.app.schemas.situation import (
     SituationGraphResponse,
 )
 from backend.app.schemas.prediction import PredictionResponse
+from backend.app.schemas.intervention import SimulationRequest, SimulationResponse
 from backend.app.services.situation_service import situation_service
 from backend.app.services.prediction_service import prediction_service
+from backend.app.services.intervention_service import intervention_service
 
 router = APIRouter(prefix="/api/situations", tags=["Situations"])
 
@@ -60,3 +62,11 @@ def get_situation_predictions(situation_id: str):
     if not pred:
         raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found for prediction")
     return PredictionResponse(**pred.model_dump())
+
+@router.post("/{situation_id}/simulate", response_model=SimulationResponse)
+def simulate_intervention(situation_id: str, request: SimulationRequest):
+    """Simulate a what-if counterfactual intervention (MONITOR, ISOLATE, LOCKDOWN). Pure simulation only."""
+    sim = intervention_service.simulate_action(situation_id, request.action)
+    if not sim:
+        raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found for simulation")
+    return SimulationResponse(**sim.model_dump())
