@@ -63,7 +63,25 @@ class FallbackCollection:
             results = results[:limit]
 
         class Cursor(list):
-            pass
+            def sort(self, *args, **kwargs):
+                if not args:
+                    return self
+                arg0 = args[0]
+                if isinstance(arg0, str):
+                    field = arg0
+                    direction = args[1] if len(args) > 1 else 1
+                    rev = (direction == -1)
+                elif isinstance(arg0, list) and len(arg0) > 0:
+                    field, direction = arg0[0]
+                    rev = (direction == -1)
+                else:
+                    return self
+                sorted_res = sorted(self, key=lambda x: str(x.get(field, "")), reverse=rev)
+                return Cursor(sorted_res)
+
+            def limit(self, n: int):
+                return Cursor(self[:n])
+
         return Cursor(results)
 
     def update_one(self, filter: Dict[str, Any], update: Dict[str, Any]):
@@ -71,6 +89,9 @@ class FallbackCollection:
             if self._matches(target, filter):
                 if "$set" in update:
                     target.update(update["$set"])
+                if "$inc" in update:
+                    for k, v in update["$inc"].items():
+                        target[k] = target.get(k, 0) + v
                 if "$push" in update:
                     for k, v in update["$push"].items():
                         target.setdefault(k, []).append(v)

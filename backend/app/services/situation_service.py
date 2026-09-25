@@ -1,8 +1,11 @@
 """Situation Service managing situation lifecycle, evolution, and timeline reconstruction."""
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
+import networkx as nx
+
 from backend.app.db.mongodb import db_manager
 from backend.app.models.situation import Situation, SituationState
 from backend.app.models.situation_transition import SituationTransition
@@ -10,6 +13,11 @@ from backend.app.models.event import NormalizedEvent
 from backend.app.intelligence.evolution.state_machine import SituationStateMachine
 from backend.app.intelligence.graph.situation_graph import SituationGraphBuilder
 from backend.app.intelligence.correlation.engine import CorrelationMatch
+from backend.app.services.threat_intel_service import threat_intel_service
+from backend.app.services.mitre_service import mitre_service
+from backend.app.services.behavioral_service import behavioral_service
+from backend.app.services.risk_engine_service import risk_engine_service
+from backend.app.services.metrics_service import metrics_service
 
 logger = logging.getLogger("sentinel.service.situation")
 
@@ -47,7 +55,8 @@ class SituationService:
         correlated_event_ids: List[str],
         matches: List[CorrelationMatch]
     ) -> Situation:
-        """Central pipeline link: correlates event, updates graph, transitions state."""
+        """Central pipeline link: correlates event, updates graph, transitions state, and scores explainable risk."""
+        start_time = time.perf_counter()
         situations_col = db_manager.get_collection("situations")
         transitions_col = db_manager.get_collection("situation_transitions")
         events_col = db_manager.get_collection("events")
@@ -85,17 +94,54 @@ class SituationService:
             logger.warning("SITUATION ESCALATION [%s]: %s -> %s (Reason: %s)",
                            sit_id, transition.from_state, transition.to_state, transition.reason)
             situation.status = SituationState(transition.to_state)
-            situation.risk_score = round(min(1.0, situation.risk_score + transition.risk_delta), 2)
             situation.summary = transition.reason
             
             # Persist historical transition record (IMMUTABLE, NO TTL)
             transitions_col.insert_one(transition.to_doc())
 
+        # 6. Advanced Security Intelligence Pipelines
+        # Threat Intelligence Matching
+        threat_matches = threat_intel_service.match_event(new_event)
+        
+        # MITRE ATT&CK Mapping
+        single_mapping = mitre_service.map_event(new_event, situation_id=sit_id)
+        mitre_mappings = [single_mapping] if single_mapping else []
+
+        # Behavioral Baseline Evaluation
+        anomaly = behavioral_service.evaluate_event(new_event)
+        anomaly_score = anomaly.anomaly_score if anomaly else 0.0
+
+        # High Criticality Assets in blast radius estimation
+        high_criticality_count = 0
+        if "server" in new_event.location_id.lower() or "vault" in new_event.location_id.lower():
+            high_criticality_count += 2
+        if "120" in new_event.entity_id or "person-104" in new_event.entity_id:
+            high_criticality_count += 1
+
+        # 7. Compute Explainable Multidimensional Risk Score
+        risk_result = risk_engine_service.compute_situation_risk(
+            situation=situation,
+            new_event=new_event,
+            threat_matches=threat_matches,
+            mitre_mappings=mitre_mappings,
+            behavioral_anomaly_score=anomaly_score,
+            attack_chain_progression=min(1.0, len(mitre_mappings) * 0.25),
+            high_criticality_asset_count=high_criticality_count
+        )
+        situation.risk_score = risk_result.risk_score
+
+        # 8. Persist updated situation
         situation.updated_at = datetime.now(timezone.utc)
         situations_col.update_one(
             {"situation_id": sit_id},
             {"$set": situation.to_doc()}
         )
+
+        # 9. Record Observability Telemetry
+        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+        metrics_service.record_latency("correlation_and_evolve", elapsed_ms)
+        metrics_service.record_event(new_event.source_type.value)
+
         return situation
 
     def get_situation(self, situation_id: str) -> Optional[Situation]:
@@ -141,5 +187,11 @@ class SituationService:
                         builder.add_event(NormalizedEvent(**doc))
             self.graphs[situation_id] = builder
         return builder.to_json()
+
+    def get_situation_graph(self, situation_id: str) -> Optional[nx.DiGraph]:
+        """Return the internal NetworkX DiGraph for graph analysis and traversal."""
+        self.get_graph(situation_id)
+        builder = self.graphs.get(situation_id)
+        return builder.graph if builder else None
 
 situation_service = SituationService()

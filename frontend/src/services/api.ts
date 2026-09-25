@@ -123,5 +123,92 @@ export const api = {
   async getLayers() {
     const res = await fetch(`${API_BASE}/api/context/layers`);
     return handleResponse<{ intel_layers: any[]; context_layers: any[] }>(res);
+  },
+
+  // Threat Intelligence
+  async getThreatIndicators(type?: string) {
+    const query = type ? `?indicator_type=${type}` : '';
+    const res = await fetch(`${API_BASE}/api/intelligence/threat-intel/indicators${query}`);
+    return handleResponse<any[]>(res);
+  },
+
+  // MITRE ATT&CK
+  async getMitreMappings(situationId?: string) {
+    const url = situationId
+      ? `${API_BASE}/api/intelligence/mitre/situations/${situationId}`
+      : `${API_BASE}/api/intelligence/mitre/mappings`;
+    const res = await fetch(url);
+    return handleResponse<any[]>(res);
+  },
+
+  // Behavioral
+  async getBehavioralAnomalies(limit: number = 30) {
+    const res = await fetch(`${API_BASE}/api/intelligence/behavioral/anomalies?limit=${limit}`);
+    return handleResponse<any[]>(res);
+  },
+
+  // Blast Radius
+  async getBlastRadius(situationId: string) {
+    const res = await fetch(`${API_BASE}/api/situations/${situationId}/blast-radius`);
+    return handleResponse<any>(res);
+  },
+
+  // Attack Chain
+  async getAttackChain(situationId: string) {
+    const res = await fetch(`${API_BASE}/api/situations/${situationId}/attack-chain`);
+    return handleResponse<any>(res);
+  },
+
+  // Risk Explanation
+  async getRiskExplanation(situationId: string) {
+    const res = await fetch(`${API_BASE}/api/situations/${situationId}/risk-explanation`);
+    return handleResponse<any>(res);
+  },
+
+  // Governance & Feedback
+  async submitFeedback(data: {
+    situation_id: string;
+    feedback_type: string;
+    comments: string;
+    prediction_id?: string;
+    observed_result?: string;
+  }) {
+    const res = await fetch(`${API_BASE}/api/governance/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': 'sentinel-operator-key'
+      },
+      body: JSON.stringify(data)
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getSituationFeedback(situationId: string) {
+    const res = await fetch(`${API_BASE}/api/governance/feedback/situation/${situationId}`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getEvaluationMetrics() {
+    const res = await fetch(`${API_BASE}/api/governance/evaluation/metrics`);
+    return handleResponse<any>(res);
+  },
+
+  async getAuditTrail(limit: number = 30) {
+    const res = await fetch(`${API_BASE}/api/governance/audit?limit=${limit}`, {
+      headers: { 'X-API-Key': 'sentinel-operator-key' }
+    });
+    return handleResponse<any[]>(res);
+  },
+
+  // System Health & Telemetry
+  async getSystemHealth() {
+    const res = await fetch(`${API_BASE}/api/system/health`);
+    return handleResponse<any>(res);
+  },
+
+  async getSystemMetrics() {
+    const res = await fetch(`${API_BASE}/api/system/metrics`);
+    return handleResponse<any>(res);
   }
 };

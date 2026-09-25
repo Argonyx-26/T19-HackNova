@@ -16,6 +16,9 @@ from backend.app.api.routes.events import router as events_router
 from backend.app.api.routes.situations import router as situations_router
 from backend.app.api.routes.simulation import router as simulation_router
 from backend.app.api.routes.context import router as context_router
+from backend.app.api.routes.intelligence import router as intelligence_router
+from backend.app.api.routes.governance import router as governance_router
+from backend.app.api.routes.system import router as system_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,6 +51,9 @@ app.include_router(events_router)
 app.include_router(situations_router)
 app.include_router(simulation_router)
 app.include_router(context_router)
+app.include_router(intelligence_router)
+app.include_router(governance_router)
+app.include_router(system_router)
 
 @app.get("/health", tags=["System"])
 def health_check():

@@ -80,3 +80,36 @@ def get_situation_recommendation(situation_id: str):
     if not rec:
         raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found for recommendation")
     return DecisionSupportResponse(**rec.model_dump())
+
+@router.get("/{situation_id}/blast-radius")
+def get_situation_blast_radius(situation_id: str):
+    """Retrieve blast radius analysis estimating affected physical zones, endpoints, identities, and databases."""
+    from backend.app.services.blast_radius_service import blast_radius_service
+    br = blast_radius_service.calculate_blast_radius(situation_id)
+    return br.model_dump()
+
+@router.get("/{situation_id}/attack-chain")
+def get_situation_attack_chain(situation_id: str):
+    """Retrieve multi-stage attack chain reconstruction showing kill-chain stage progression and evidence."""
+    from backend.app.services.attack_chain_service import attack_chain_service
+    chain = attack_chain_service.reconstruct_chain(situation_id)
+    return chain.model_dump()
+
+@router.get("/{situation_id}/risk-explanation")
+def get_situation_risk_explanation(situation_id: str):
+    """Retrieve explainable risk engine calculation detailing all weighted drivers and mathematical factors."""
+    from backend.app.services.risk_engine_service import risk_engine_service
+    from backend.app.services.threat_intel_service import threat_intel_service
+    from backend.app.services.mitre_service import mitre_service
+    
+    sit = situation_service.get_situation(situation_id)
+    if not sit:
+        raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found")
+        
+    mitre_maps = mitre_service.get_mappings_for_situation(situation_id)
+    risk_res = risk_engine_service.compute_situation_risk(
+        situation=sit,
+        mitre_mappings=mitre_maps,
+        attack_chain_progression=min(1.0, len(mitre_maps) * 0.25)
+    )
+    return risk_res.model_dump()
