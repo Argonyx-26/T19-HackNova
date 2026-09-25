@@ -8,7 +8,9 @@ from backend.app.schemas.situation import (
     SituationTransitionResponse,
     SituationGraphResponse,
 )
+from backend.app.schemas.prediction import PredictionResponse
 from backend.app.services.situation_service import situation_service
+from backend.app.services.prediction_service import prediction_service
 
 router = APIRouter(prefix="/api/situations", tags=["Situations"])
 
@@ -50,3 +52,11 @@ def get_situation_graph(situation_id: str):
     """Retrieve the NetworkX threat topology graph for visualization."""
     graph_data = situation_service.get_graph(situation_id)
     return SituationGraphResponse(**graph_data)
+
+@router.get("/{situation_id}/predictions", response_model=PredictionResponse)
+def get_situation_predictions(situation_id: str):
+    """Retrieve deterministic future-state trajectory forecast for an active situation."""
+    pred = prediction_service.get_or_generate_prediction(situation_id)
+    if not pred:
+        raise HTTPException(status_code=404, detail=f"Situation '{situation_id}' not found for prediction")
+    return PredictionResponse(**pred.model_dump())
