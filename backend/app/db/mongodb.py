@@ -102,6 +102,11 @@ class MongoDBManager:
             "recommendations": [],
         }
 
+    def reset(self):
+        """Clears memory buffers for isolated test runs."""
+        for k in self._fallback_store:
+            self._fallback_store[k].clear()
+
     def connect(self) -> bool:
         """Establish connection to MongoDB Atlas with graceful fallback for local testing."""
         if not settings.MONGODB_URI or settings.MONGODB_URI == "mongodb://localhost:27017":
