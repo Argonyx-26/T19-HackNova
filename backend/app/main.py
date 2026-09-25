@@ -15,6 +15,7 @@ from backend.app.db.indexes import ensure_indexes
 from backend.app.api.routes.events import router as events_router
 from backend.app.api.routes.situations import router as situations_router
 from backend.app.api.routes.simulation import router as simulation_router
+from backend.app.api.routes.context import router as context_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(events_router)
 app.include_router(situations_router)
 app.include_router(simulation_router)
+app.include_router(context_router)
 
 @app.get("/health", tags=["System"])
 def health_check():

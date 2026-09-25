@@ -102,5 +102,26 @@ export const api = {
   async getSimulationStatus() {
     const res = await fetch(`${API_BASE}/api/simulation/status`);
     return handleResponse<{ running: boolean; current_step: number; total_steps: number }>(res);
+  },
+
+  // Real-world Context Feeds (USGS, Flights, Maritime, Layers)
+  async getEarthquakes() {
+    const res = await fetch(`${API_BASE}/api/context/earthquakes`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getFlights() {
+    const res = await fetch(`${API_BASE}/api/context/flights`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getMaritime() {
+    const res = await fetch(`${API_BASE}/api/context/maritime`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getLayers() {
+    const res = await fetch(`${API_BASE}/api/context/layers`);
+    return handleResponse<{ intel_layers: any[]; context_layers: any[] }>(res);
   }
 };

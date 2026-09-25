@@ -17,6 +17,8 @@ import { FutureStatePanel } from '../components/predictions/FutureStatePanel';
 import { InterventionSandbox } from '../components/interventions/InterventionSandbox';
 import { DecisionSupportCard } from '../components/interventions/DecisionSupportCard';
 import { SituationGraphView } from '../components/graph/SituationGraphView';
+import { GlobalSituationalMap } from '../components/map/GlobalSituationalMap';
+import { Map, Cpu } from 'lucide-react';
 
 interface DashboardProps {
   onSituationStateChange: (state: any) => void;
@@ -35,6 +37,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [recommendation, setRecommendation] = useState<DecisionSupportRecommendation | null>(null);
   const [graphData, setGraphData] = useState<SituationGraphData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [dashboardTab, setDashboardTab] = useState<'map' | 'analytics'>('map');
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -93,43 +96,104 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Split: Situation Status (Left) & Future-State Prediction (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7">
-          <SituationStatusCard situation={currentSituation} />
+    <div className="space-y-4">
+      {/* Top View Selector Bar */}
+      <div className="flex items-center justify-between bg-neutral-900/60 border border-neutral-800/80 px-4 py-2 rounded-xl">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setDashboardTab('map')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all ${
+              dashboardTab === 'map'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <Map className="w-3.5 h-3.5" />
+            <span>GLOBAL SITUATION MAP (OSIRIS VIEW)</span>
+          </button>
+
+          <button
+            onClick={() => setDashboardTab('analytics')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all ${
+              dashboardTab === 'analytics'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            <span>SITUATION INTELLIGENCE SUITE</span>
+          </button>
         </div>
-        <div className="lg:col-span-5">
-          <FutureStatePanel prediction={prediction} />
+
+        <div className="text-[11px] font-mono text-neutral-400 flex items-center space-x-3">
+          <span>Active Threat: <strong className="text-red-400 font-semibold">{currentSituation?.status || 'NORMAL'}</strong></span>
+          <span className="text-neutral-600">|</span>
+          <span>Risk Velocity: <strong className="text-amber-400 font-semibold">{(prediction?.risk_delta ?? 0) > 0 ? `+${prediction?.risk_delta}` : (prediction?.risk_delta ?? 0)} pts</strong></span>
         </div>
       </div>
 
-      {/* Middle Split: NetworkX Graph Topology (Left) & Live Event Ingestion Feed (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7">
-          <SituationGraphView graphData={graphData} />
-        </div>
-        <div className="lg:col-span-5">
-          <EventFeed events={events} />
-        </div>
-      </div>
-
-      {/* Lower Split: Counterfactual "What-If" Simulation & Decision Support */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-6">
-          <InterventionSandbox
-            onSimulate={handleSimulate}
-            activeSimulation={activeSimulation}
-            isLoading={isLoading}
+      {/* VIEW 1: GLOBAL SITUATIONAL MAP (OSIRIS-STYLE) */}
+      {dashboardTab === 'map' && (
+        <div className="space-y-6">
+          <GlobalSituationalMap
+            activeSituation={currentSituation}
+            events={events}
+            onSelectSituation={() => setDashboardTab('analytics')}
           />
-        </div>
-        <div className="lg:col-span-6">
-          <DecisionSupportCard recommendation={recommendation} />
-        </div>
-      </div>
 
-      {/* Bottom Section: Situation Evolution Timeline */}
-      <SituationTimeline timeline={timeline} />
+          {/* Quick Context Summary Below Map */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-6">
+              <SituationStatusCard situation={currentSituation} />
+            </div>
+            <div className="lg:col-span-6">
+              <FutureStatePanel prediction={prediction} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: FULL SITUATION INTELLIGENCE SUITE */}
+      {dashboardTab === 'analytics' && (
+        <div className="space-y-6">
+          {/* Top Split: Situation Status (Left) & Future-State Prediction (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <SituationStatusCard situation={currentSituation} />
+            </div>
+            <div className="lg:col-span-5">
+              <FutureStatePanel prediction={prediction} />
+            </div>
+          </div>
+
+          {/* Middle Split: NetworkX Graph Topology (Left) & Live Event Ingestion Feed (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <SituationGraphView graphData={graphData} />
+            </div>
+            <div className="lg:col-span-5">
+              <EventFeed events={events} />
+            </div>
+          </div>
+
+          {/* Lower Split: Counterfactual "What-If" Simulation & Decision Support */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-6">
+              <InterventionSandbox
+                onSimulate={handleSimulate}
+                activeSimulation={activeSimulation}
+                isLoading={isLoading}
+              />
+            </div>
+            <div className="lg:col-span-6">
+              <DecisionSupportCard recommendation={recommendation} />
+            </div>
+          </div>
+
+          {/* Bottom Section: Situation Evolution Timeline */}
+          <SituationTimeline timeline={timeline} />
+        </div>
+      )}
     </div>
   );
 };
