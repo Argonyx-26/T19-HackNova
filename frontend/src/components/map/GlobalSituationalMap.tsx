@@ -399,7 +399,18 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
         {viewMode === 'globe' && (
           <div className="absolute inset-0 w-full h-full flex items-center justify-center p-4">
             <div className="w-full max-w-4xl max-h-full flex items-center justify-center">
-              <RotatingEarth width={720} height={520} className="w-full max-w-full" />
+              <RotatingEarth
+                width={720}
+                height={520}
+                className="w-full max-w-full"
+                activeSituation={activeSituation}
+                onSelectThreat={(threat) => {
+                  setSelectedEntity({
+                    type: threat.type,
+                    data: threat.type === 'situation' && activeSituation ? activeSituation : threat
+                  });
+                }}
+              />
             </div>
           </div>
         )}
