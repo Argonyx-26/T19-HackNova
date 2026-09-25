@@ -1,0 +1,132 @@
+{
+  "scenario_name": "escalation_alpha",
+  "description": "Multi-source breach progression from baseline access to critical exfiltration attempt",
+  "entities": [
+    {
+      "entity_id": "person-104",
+      "entity_type": "PERSON",
+      "name": "Dr. Aris Thorne",
+      "status": "FLAGGED",
+      "metadata": { "badge_id": "BDG-9921", "role": "Contractor" }
+    },
+    {
+      "entity_id": "ep-10.0.4.120",
+      "entity_type": "NETWORK_ENDPOINT",
+      "name": "Workstation Lab-A-12",
+      "status": "FLAGGED",
+      "metadata": { "ip": "10.0.4.120", "mac": "00:1A:2B:3C:4D:5E" }
+    },
+    {
+      "entity_id": "cam-07",
+      "entity_type": "CAMERA",
+      "name": "CCTV Lab-A Primary",
+      "status": "ACTIVE",
+      "metadata": { "zone": "lab-a" }
+    }
+  ],
+  "locations": [
+    {
+      "location_id": "lobby",
+      "name": "Main Entrance Lobby",
+      "zone_type": "PUBLIC",
+      "adjacent_locations": ["corridor-south"]
+    },
+    {
+      "location_id": "corridor-south",
+      "name": "South Access Corridor",
+      "zone_type": "STANDARD",
+      "adjacent_locations": ["lobby", "lab-a"]
+    },
+    {
+      "location_id": "lab-a",
+      "name": "High-Security Research Lab A",
+      "zone_type": "RESTRICTED",
+      "adjacent_locations": ["corridor-south", "server-room-1"]
+    },
+    {
+      "location_id": "server-room-1",
+      "name": "Primary Datacenter Vault",
+      "zone_type": "RESTRICTED",
+      "adjacent_locations": ["lab-a"]
+    }
+  ],
+  "events": [
+    {
+      "event_id": "evt-001",
+      "offset_seconds": 0,
+      "source_type": "ACCESS",
+      "event_type": "access_granted",
+      "entity_id": "person-104",
+      "location_id": "lobby",
+      "severity": 0.1,
+      "confidence": 0.99,
+      "payload": { "door": "DOOR-LOBBY-01", "badge_id": "BDG-9921", "note": "Routine morning check-in" }
+    },
+    {
+      "event_id": "evt-002",
+      "offset_seconds": 35,
+      "source_type": "ACCESS",
+      "event_type": "access_denied",
+      "entity_id": "person-104",
+      "location_id": "lab-a",
+      "severity": 0.45,
+      "confidence": 0.98,
+      "payload": { "door": "LAB-A-03", "attempts": 1, "badge_id": "BDG-9921", "reason": "Insufficient clearance" }
+    },
+    {
+      "event_id": "evt-003",
+      "offset_seconds": 65,
+      "source_type": "ACCESS",
+      "event_type": "repeated_access_attempt",
+      "entity_id": "person-104",
+      "location_id": "lab-a",
+      "severity": 0.70,
+      "confidence": 0.98,
+      "payload": { "door": "LAB-A-03", "attempts": 3, "badge_id": "BDG-9921", "note": "Forced pin retry" }
+    },
+    {
+      "event_id": "evt-004",
+      "offset_seconds": 95,
+      "source_type": "CCTV",
+      "event_type": "unauthorized_presence",
+      "entity_id": "person-104",
+      "location_id": "lab-a",
+      "severity": 0.82,
+      "confidence": 0.94,
+      "payload": { "camera_id": "cam-07", "bounding_box": [140, 60, 260, 390], "tailgating_detected": true }
+    },
+    {
+      "event_id": "evt-005",
+      "offset_seconds": 130,
+      "source_type": "NETWORK",
+      "event_type": "port_scan",
+      "entity_id": "ep-10.0.4.120",
+      "location_id": "lab-a",
+      "severity": 0.88,
+      "confidence": 0.96,
+      "payload": { "source_ip": "10.0.4.120", "target_subnet": "10.0.8.0/24", "scanned_ports": [22, 445, 3389, 8080] }
+    },
+    {
+      "event_id": "evt-006",
+      "offset_seconds": 160,
+      "source_type": "IOT",
+      "event_type": "server_rack_vibration_alert",
+      "entity_id": "ep-10.0.4.120",
+      "location_id": "server-room-1",
+      "severity": 0.92,
+      "confidence": 0.91,
+      "payload": { "sensor_id": "iot-vibe-rack-04", "threshold_g": 2.4, "door_sensor": "open" }
+    },
+    {
+      "event_id": "evt-007",
+      "offset_seconds": 185,
+      "source_type": "NETWORK",
+      "event_type": "data_exfiltration_attempt",
+      "entity_id": "ep-10.0.4.120",
+      "location_id": "server-room-1",
+      "severity": 0.96,
+      "confidence": 0.95,
+      "payload": { "source_ip": "10.0.4.120", "dest_external_ip": "198.51.100.44", "bytes_transferred": 850000000 }
+    }
+  ]
+}

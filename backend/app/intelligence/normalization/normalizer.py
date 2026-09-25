@@ -12,12 +12,16 @@ class EventNormalizer:
         # 1. Deduce or enforce event_id
         event_id = raw_data.get("event_id") or f"evt-{uuid.uuid4().hex[:8]}"
 
-        # 2. Parse source type
-        source_raw = str(raw_data.get("source_type", "")).upper()
-        if source_raw in SourceType.__members__:
-            source_type = SourceType(source_raw)
+        # 2. Parse source type robustly
+        source_val = raw_data.get("source_type")
+        if isinstance(source_val, SourceType):
+            source_type = source_val
         else:
-            source_type = SourceType.ACCESS  # Default fallback
+            s_str = str(source_val or "").upper().replace("SOURCETYPE.", "")
+            try:
+                source_type = SourceType(s_str)
+            except ValueError:
+                source_type = SourceType.ACCESS
 
         # 3. Parse timestamp
         raw_ts = raw_data.get("timestamp")
