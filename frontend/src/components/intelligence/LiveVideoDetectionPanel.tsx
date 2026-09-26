@@ -7,6 +7,7 @@ import {
   Radio,
   ChevronRight,
 } from 'lucide-react';
+import { api } from '../../services/api';
 
 export interface BBoxXYXY {
   x1: number;
@@ -494,7 +495,7 @@ export const LiveVideoDetectionPanel: React.FC<LiveVideoDetectionPanelProps> = (
           <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[#c9a15d]/30 bg-[#030201] shadow-2xl flex items-center justify-center">
             {/* MJPEG VIDEO STREAM */}
             <img
-              src={`/api/video/stream/${selectedCamId}`}
+              src={api.getVideoStreamUrl(selectedCamId)}
               alt={`Camera ${selectedCamId}`}
               className="w-full h-full object-cover select-none"
               onError={(e) => {

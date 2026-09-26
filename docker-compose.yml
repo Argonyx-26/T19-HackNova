@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # MongoDB Atlas / Local MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: sentinel_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=sentinel_x
+
+  # FastAPI + YOLOv8 Intelligence Engine Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sentinel_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DATABASE=sentinel_x
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - CORS_ORIGINS=*
+    depends_on:
+      - mongodb
+
+  # React / Vite Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sentinel_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

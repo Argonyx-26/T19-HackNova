@@ -131,7 +131,7 @@ const LiveCameraFeed: React.FC<CameraFeedProps> = ({ cam, behaviors, onSelect })
         {/* LIVE MJPEG FEED WITH PHOTOREALISTIC FALLBACK */}
         {!streamError ? (
           <img
-            src={`/api/video/stream/${cam.id}`}
+            src={api.getVideoStreamUrl(cam.id)}
             alt={`${cam.id} Live Stream`}
             className="w-full h-full object-cover select-none filter contrast-110 brightness-95"
             onError={() => setStreamError(true)}
