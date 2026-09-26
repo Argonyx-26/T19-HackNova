@@ -3,22 +3,22 @@ services:
   - type: web
     name: sentinel-x-backend
     runtime: python
-    buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install --upgrade pip && pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt"
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /health
-    plan: starter
+    plan: free
     region: oregon
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: PYTHONPATH
+        value: .
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
         value: "false"
       - key: MONGODB_URI
         sync: false
-        # Enter your MongoDB Atlas connection string in Render Dashboard:
-        # e.g. mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/sentinel_x?retryWrites=true&w=majority
       - key: MONGODB_DATABASE
         value: sentinel_x
       - key: CORS_ORIGINS
