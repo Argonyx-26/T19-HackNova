@@ -104,6 +104,25 @@ class FallbackCollection:
             modified_count = 0
         return UpdateResultZero()
 
+    def delete_one(self, filter: Dict[str, Any] = None):
+        for i, doc in enumerate(self.storage):
+            if self._matches(doc, filter):
+                self.storage.pop(i)
+                class DeleteResult:
+                    deleted_count = 1
+                return DeleteResult()
+        class DeleteResultZero:
+            deleted_count = 0
+        return DeleteResultZero()
+
+    def delete_many(self, filter: Dict[str, Any] = None):
+        to_keep = [doc for doc in self.storage if not self._matches(doc, filter)]
+        deleted = len(self.storage) - len(to_keep)
+        self.storage[:] = to_keep
+        class DeleteResult:
+            deleted_count = deleted
+        return DeleteResult()
+
     def count_documents(self, filter: Dict[str, Any] = None):
         return len(self.find(filter))
 

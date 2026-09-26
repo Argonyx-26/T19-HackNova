@@ -90,46 +90,46 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
   const situationPos = projectCoordinates(-122.4194, 37.7749);
 
   return (
-    <div className="relative w-full h-[calc(100vh-140px)] min-h-[640px] bg-[#050811] rounded-2xl border border-neutral-800/80 overflow-hidden flex flex-col font-sans select-none shadow-2xl">
+    <div className="relative w-full h-[560px] bg-[#050811] rounded-2xl border border-neutral-800/80 overflow-hidden flex flex-col font-sans select-none shadow-2xl">
       {/* 1. Tactical HUD Header */}
-      <div className="h-12 border-b border-neutral-800/80 bg-[#080d1a]/90 backdrop-blur-md px-4 flex items-center justify-between z-20">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
+      <div className="h-12 border-b border-neutral-800/80 bg-[#080d1a]/90 backdrop-blur-md px-4 flex items-center justify-between z-20 overflow-x-auto scrollbar-none gap-3">
+        <div className="flex items-center space-x-2.5 flex-shrink-0">
+          <div className="flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-            <span className="font-mono tracking-widest text-sm font-bold text-neutral-100">S E N T I N E L - X</span>
+            <span className="font-mono tracking-widest text-xs font-bold text-neutral-100 whitespace-nowrap">S E N T I N E L - X</span>
           </div>
-          <span className="text-neutral-600 text-xs">|</span>
-          <span className="text-xs font-mono uppercase tracking-wider text-cyan-400/90">Global Situation Platform</span>
+          <span className="text-neutral-700 text-xs hidden sm:inline">|</span>
+          <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400/90 whitespace-nowrap hidden sm:inline">Global Situation Platform</span>
         </div>
 
-        <div className="flex items-center space-x-6 text-xs font-mono">
-          <div className="flex items-center space-x-2 bg-neutral-900/80 border border-neutral-800 px-2.5 py-1 rounded">
+        <div className="flex items-center space-x-3 text-xs font-mono flex-shrink-0">
+          <div className="flex items-center space-x-1.5 bg-neutral-900/80 border border-neutral-800 px-2 py-1 rounded text-[11px] flex-shrink-0 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span className="text-neutral-400">SYS: <strong className="text-emerald-400 font-normal">CONNECTED</strong></span>
           </div>
 
-          <div className="hidden md:flex items-center space-x-1.5 text-neutral-400">
+          <div className="hidden xl:flex items-center space-x-1.5 text-neutral-400 text-[11px] flex-shrink-0 whitespace-nowrap">
             <Zap className="w-3.5 h-3.5 text-amber-400" />
             <span>SOLAR: <span className="text-neutral-200">Kp1</span></span>
           </div>
 
-          <div className="hidden lg:flex items-center space-x-1.5 text-neutral-400">
+          <div className="hidden 2xl:flex items-center space-x-1.5 text-neutral-400 text-[11px] flex-shrink-0 whitespace-nowrap">
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
             <span>ENTITIES: <span className="text-neutral-200">12,483</span></span>
           </div>
 
-          <div className="flex items-center space-x-2 text-neutral-300 bg-neutral-950 px-3 py-1 rounded border border-neutral-800">
+          <div className="flex items-center space-x-1.5 text-neutral-300 bg-neutral-950 px-2.5 py-1 rounded border border-neutral-800 text-[11px] flex-shrink-0 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-red-500"></span>
             <span>{utcTime || 'UTC --:--:--'}</span>
           </div>
 
           {/* Mode Switcher */}
-          <div className="flex items-center bg-neutral-900 border border-neutral-700/80 rounded p-0.5">
+          <div className="flex items-center bg-neutral-900 border border-neutral-700/80 rounded p-0.5 flex-shrink-0 whitespace-nowrap">
             <button
               onClick={() => setViewMode('tactical')}
-              className={`px-2.5 py-1 rounded text-xs transition-colors flex items-center space-x-1.5 ${
+              className={`px-2.5 py-1 rounded text-[11px] transition-colors flex items-center space-x-1.5 ${
                 viewMode === 'tactical'
-                  ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'
+                  ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-semibold'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
@@ -138,9 +138,9 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
             </button>
             <button
               onClick={() => setViewMode('globe')}
-              className={`px-2.5 py-1 rounded text-xs transition-colors flex items-center space-x-1.5 ${
+              className={`px-2.5 py-1 rounded text-[11px] transition-colors flex items-center space-x-1.5 ${
                 viewMode === 'globe'
-                  ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'
+                  ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-semibold'
                   : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
@@ -347,10 +347,14 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
                 <g
                   className="cursor-pointer"
                   onClick={() => {
-                    if (activeSituation) {
-                      setSelectedEntity({ type: 'situation', data: activeSituation });
-                      if (onSelectSituation) onSelectSituation(activeSituation.situation_id);
-                    }
+                    const data = activeSituation || {
+                      situation_id: 'sit-20260925-001',
+                      status: 'CRITICAL',
+                      risk_score: 0.92,
+                      facility: 'Orion Research Campus',
+                      location_ids: ['ZONE-PERIMETER-EAST', 'BUILDING-OMEGA-F4']
+                    };
+                    setSelectedEntity({ type: 'situation', data });
                   }}
                 >
                   {/* Outer Radar Ping */}
@@ -652,8 +656,11 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
 
                 {onSelectSituation && (
                   <button
-                    onClick={() => onSelectSituation(selectedEntity.data.situation_id)}
-                    className="w-full mt-2 py-1.5 px-3 bg-red-600 hover:bg-red-500 text-white rounded font-sans text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors shadow-lg"
+                    onClick={() => {
+                      const sitId = selectedEntity.data?.situation_id || activeSituation?.situation_id || 'sit-20260925-001';
+                      onSelectSituation(sitId);
+                    }}
+                    className="w-full mt-2 py-2 px-3 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white rounded-lg font-sans text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-lg active:scale-[0.98] cursor-pointer"
                   >
                     <span>OPEN SITUATION INTELLIGENCE</span>
                     <ChevronRight className="w-4 h-4" />
@@ -688,15 +695,15 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
       </div>
 
       {/* 5. Bottom Tactical Telemetry Bar */}
-      <div className="h-9 border-t border-neutral-800/80 bg-[#080d1a]/90 backdrop-blur-md px-4 flex items-center justify-between text-[11px] font-mono text-neutral-400 z-20">
-        <div className="flex items-center space-x-4">
+      <div className="h-9 border-t border-neutral-800/80 bg-[#080d1a]/90 backdrop-blur-md px-4 flex items-center justify-between text-[11px] font-mono text-neutral-400 z-20 overflow-hidden whitespace-nowrap gap-2">
+        <div className="flex items-center space-x-3 flex-shrink-0 truncate">
           <span>COORDINATES: <span className="text-neutral-200">{coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}</span></span>
-          <span className="hidden md:inline text-neutral-600">|</span>
-          <span className="hidden md:inline">TARGET: <span className="text-cyan-400">{coordinates.loc}</span></span>
+          <span className="hidden sm:inline text-neutral-600">|</span>
+          <span className="hidden sm:inline">TARGET: <span className="text-cyan-400">{coordinates.loc}</span></span>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3 flex-shrink-0">
+          <div className="hidden lg:flex items-center space-x-1.5">
             <span className="text-neutral-500">REGIONS:</span>
             {['GLOBAL', 'US-WEST', 'EMEA', 'APAC'].map((r) => (
               <button key={r} className="hover:text-cyan-400 transition-colors">
@@ -704,7 +711,7 @@ export const GlobalSituationalMap: React.FC<GlobalSituationalMapProps> = ({
               </button>
             ))}
           </div>
-          <span className="text-neutral-600">|</span>
+          <span className="hidden lg:inline text-neutral-600">|</span>
           <span>ZOOM: <span className="text-neutral-200">2.5x</span></span>
         </div>
       </div>

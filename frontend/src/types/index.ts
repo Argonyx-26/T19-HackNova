@@ -2,7 +2,29 @@ export type SourceType = 'CCTV' | 'NETWORK' | 'ACCESS' | 'IOT';
 
 export type SituationState = 'NORMAL' | 'ANOMALOUS' | 'SUSPICIOUS' | 'ESCALATING' | 'CRITICAL' | 'CONTAINED';
 
+export type MainNavSection =
+  | 'overview'
+  | 'situations'
+  | 'cyber_physical'
+  | 'graph'
+  | 'simulation';
+
 export type InterventionAction = 'MONITOR' | 'ISOLATE' | 'LOCKDOWN';
+
+export type UserRole = 'admin' | 'analyst' | 'jury';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  roleTitle: string;
+  clearance: string;
+  avatar: string;
+  department: string;
+  token?: string;
+  loginTime: string;
+}
 
 export interface NormalizedEvent {
   event_id: string;
@@ -116,9 +138,13 @@ export interface SituationGraphData {
   };
 }
 
+export type IndicatorCategory = 'NETWORK_OBSERVABLE' | 'BEHAVIORAL' | 'KNOWLEDGE' | 'ENVIRONMENTAL';
+export type IntelRelevance = 'RELATED' | 'POSSIBLY_RELATED' | 'UNRELATED';
+
 export interface ThreatIntelligenceIndicator {
   indicator_id: string;
-  indicator_type: 'IP' | 'DOMAIN' | 'HASH' | 'URL';
+  indicator_type: string;  // Extended: IP, DOMAIN, HASH, URL, EMAIL, ACCOUNT, DEVICE, LATERAL_MOVEMENT, etc.
+  category: IndicatorCategory;
   value: string;
   threat_actor?: string;
   campaign?: string;
@@ -128,6 +154,50 @@ export interface ThreatIntelligenceIndicator {
   tags: string[];
   match_count: number;
   last_seen_at?: string;
+  relevance: IntelRelevance;
+  linked_physical_behavior?: string;
+}
+
+export type PhysicalBehaviorType =
+  | 'LOITERING'
+  | 'TAILGATING'
+  | 'FORCED_ENTRY'
+  | 'RESTRICTED_ZONE_ENTRY'
+  | 'WEAPON_LIKE_OBJECT'
+  | 'CROWD_FORMATION'
+  | 'UNUSUAL_MOVEMENT'
+  | 'OBJECT_ABANDONMENT'
+  | 'ACCESS_CAMERA_MISMATCH'
+  | 'IMPOSSIBLE_MOVEMENT';
+
+export type ZoneClassification = 'PUBLIC' | 'CONTROLLED' | 'RESTRICTED' | 'CRITICAL';
+export type BehaviorSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface PhysicalBehaviorEvent {
+  event_id: string;
+  behavior_type: PhysicalBehaviorType;
+  camera_id: string;
+  track_ids: string[];
+  zone_id: string;
+  zone_classification: ZoneClassification;
+  severity: BehaviorSeverity;
+  behavior_confidence: number;
+  dwell_time_seconds?: number;
+  entity_count?: number;
+  access_event_id?: string;
+  correlated_event_ids: string[];
+  movement_trajectory?: string;
+  object_class?: string;
+  physical_note: string;
+  situation_id?: string;
+  timestamp: string;
+}
+
+export interface SecurityZone {
+  camera_id: string;
+  zone_id: string;
+  zone_name: string;
+  classification: ZoneClassification;
 }
 
 export interface IndicatorMatch {
@@ -170,8 +240,9 @@ export interface BlastRadiusAsset {
   asset_type: string;
   criticality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   hop_distance: number;
-  is_direct: boolean;
-  dependency_path: string[];
+  is_direct?: boolean;
+  compromise_likelihood?: number;
+  dependency_path?: string[];
 }
 
 export interface BlastRadiusData {
@@ -180,24 +251,30 @@ export interface BlastRadiusData {
   potential_affected_count: number;
   high_criticality_assets: string[];
   spread_dimensions: {
-    physical_zones: number;
-    network_endpoints: number;
-    identities: number;
-    databases: number;
+    physical_zones?: number;
+    network_endpoints?: number;
+    identities?: number;
+    databases?: number;
   };
   affected_assets: BlastRadiusAsset[];
   risk_impact_summary: string;
-  generated_at: string;
+  calculated_at?: string;
+  generated_at?: string;
 }
 
 export interface AttackChainStage {
   stage: string;
   stage_order: number;
   detected: boolean;
-  matched_event_ids: string[];
-  techniques: string[];
+  event_ids?: string[];
+  matched_event_ids?: string[];
+  technique_ids?: string[];
+  techniques?: string[];
+  first_seen_at?: string;
+  last_seen_at?: string;
   first_seen?: string;
   last_seen?: string;
+  evidence?: string;
 }
 
 export interface AttackChainData {
@@ -207,7 +284,9 @@ export interface AttackChainData {
   total_stages: number;
   progression_percentage: number;
   stages: AttackChainStage[];
-  reconstructed_at: string;
+  created_at?: string;
+  updated_at?: string;
+  reconstructed_at?: string;
 }
 
 export interface OperatorFeedback {
@@ -299,4 +378,253 @@ export interface SystemMetricsData {
   correlation_engine_status: string;
   source_health: Record<string, string>;
   timestamp: string;
+}
+
+// -------------------------------------------------------------
+// SENTINEL-X REASONING & DIGITAL TWIN TYPINGS
+// -------------------------------------------------------------
+
+export type EvidenceType = 'SUPPORTING' | 'CONTRADICTORY' | 'MISSING';
+
+export interface EvidenceItem {
+  evidence_id: string;
+  evidence_type: EvidenceType;
+  source_modality: string;
+  event_id?: string;
+  title: string;
+  detail: string;
+  confidence: number;
+  timestamp: string;
+  location_id?: string;
+  entity_id?: string;
+  source_health_status: string;
+}
+
+export interface EvidenceShadow {
+  situation_id: string;
+  overall_confidence: number;
+  decision_model_used: string;
+  supporting_evidence: EvidenceItem[];
+  contradictory_evidence: EvidenceItem[];
+  missing_evidence: EvidenceItem[];
+  source_health_summary: Record<string, string>;
+  calculated_at: string;
+}
+
+export type WhyNotRejectionReason =
+  | 'ENTITY_MISMATCH'
+  | 'SPATIAL_DISTANCE_EXCEEDED'
+  | 'TEMPORAL_WINDOW_EXCEEDED'
+  | 'SOURCE_RELIABILITY_INSUFFICIENT'
+  | 'TOPOLOGY_ISOLATION'
+  | 'INCONSISTENT_THREAT_MODALITY';
+
+export interface WhyNotDecision {
+  decision_id: string;
+  situation_id: string;
+  rejected_event_id: string;
+  rejected_event_type: string;
+  rejected_source: string;
+  reasons: WhyNotRejectionReason[];
+  explanation: string;
+  spatial_distance_meters?: number;
+  temporal_gap_seconds?: number;
+  threshold_limits: Record<string, any>;
+  evaluated_at: string;
+}
+
+export interface VLMSituationSynthesis {
+  situation_id: string;
+  model_name: string;
+  inference_type: string;
+  executive_summary: string;
+  evidence_synthesis: string;
+  key_anomalies: string[];
+  possible_next_developments: string[];
+  suggested_operator_checklist: string[];
+  grounded_evidence_ids: string[];
+  confidence: number;
+  latency_ms: number;
+  created_at: string;
+}
+
+export type SensorFeedStatus = 'ONLINE' | 'DEGRADED' | 'DELAYED' | 'OFFLINE' | 'STALE';
+
+export interface SensorFeedHealth {
+  source_type: string;
+  status: SensorFeedStatus;
+  latency_ms: number;
+  packet_loss_pct: number;
+  last_heartbeat: string;
+  total_events_today: number;
+  quality_score: number;
+  active_channel_count: number;
+  status_detail: string;
+}
+
+export interface SourceWeatherReport {
+  overall_system_health: string;
+  active_sources: number;
+  degraded_sources: number;
+  feeds: SensorFeedHealth[];
+  timestamp: string;
+}
+
+export interface SpatialAsset {
+  asset_id: string;
+  name: string;
+  asset_type: string;
+  zone_id: string;
+  floor_number: number;
+  coordinates_3d: { x: number; y: number; z: number };
+  criticality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'NORMAL' | 'SUSPICIOUS' | 'COMPROMISED' | 'OFFLINE';
+  ip_address?: string;
+  mac_address?: string;
+}
+
+export interface Zone {
+  zone_id: string;
+  name: string;
+  floor_number: number;
+  classification: 'PUBLIC' | 'STANDARD' | 'RESTRICTED' | 'CRITICAL_VAULT';
+  polygon_2d: number[][];
+  center_3d: { x: number; y: number; z: number };
+  adjacent_zone_ids: string[];
+  assets: SpatialAsset[];
+  threat_level: number;
+}
+
+export interface BuildingFloor {
+  floor_number: number;
+  name: string;
+  elevation_meters: number;
+  zones: Zone[];
+  is_compromised: boolean;
+}
+
+export interface Building {
+  building_id: string;
+  name: string;
+  site_id: string;
+  total_floors: number;
+  floors: BuildingFloor[];
+  center_gps: { lat: number; lng: number };
+  bounding_box_3d: { width: number; height: number; depth: number };
+}
+
+export interface SiteCampus {
+  site_id: string;
+  name: string;
+  code: string;
+  buildings: Building[];
+  geofence_center: { lat: number; lng: number };
+  active_situations_count: number;
+}
+
+export interface TopologyConflict {
+  conflict_id: string;
+  conflict_type: string;
+  category: 'DATA_ERROR' | 'TOPOLOGY_ERROR' | 'SECURITY_THREAT' | string;
+  entity_id: string;
+  reported_location: string;
+  expected_location: string;
+  confidence: number;
+  description: string;
+  timestamp: string;
+  resolved: boolean;
+}
+
+// -------------------------------------------------------------------
+// THREAT DNA — Cyber-Physical Incident Profile
+// -------------------------------------------------------------------
+
+export type EvidenceStrength = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
+
+export interface PhysicalDomainProfile {
+  observed_behavior?: string;
+  behavior_note: string;
+  movement_trajectory?: string;
+  zone_classification?: string;
+  zone_id?: string;
+  camera_ids: string[];
+  track_ids: string[];
+  dwell_seconds?: number;
+  entity_count?: number;
+  behavior_confidence: number;
+}
+
+export interface AccessDomainProfile {
+  credential_state?: string;
+  badge_event_id?: string;
+  access_point?: string;
+  auth_anomaly: boolean;
+  failed_attempts: number;
+  authorization_gap?: string;
+  access_note: string;
+}
+
+export interface CyberDomainProfile {
+  endpoint_id?: string;
+  connection_target?: string;
+  protocol?: string;
+  data_volume_mb?: number;
+  anomaly_type?: string;
+  network_event_ids: string[];
+  cyber_note: string;
+  has_cyber_evidence: boolean;
+}
+
+export interface IntelligenceDomainProfile {
+  ioc_matches: string[];
+  ioc_values: string[];
+  ttp_relevance: IntelRelevance;
+  mitre_technique_ids: string[];
+  mitre_tactic?: string;
+  threat_group_mentioned?: string;
+  campaign_mentioned?: string;
+  threat_actor_attribution: string;
+  attribution_note: string;
+  intel_note: string;
+}
+
+export interface FusionScores {
+  visual_anomaly_strength: number;
+  behavior_confidence: number;
+  access_anomaly_score: number;
+  network_anomaly_score: number;
+  asset_criticality_weight: number;
+  intel_relevance_weight: number;
+  correlation_confidence: number;
+  situation_confidence: number;
+  evidence_strength: EvidenceStrength;
+  ttp_relevance: IntelRelevance;
+}
+
+export interface ThreatDNA {
+  dna_id: string;
+  situation_id: string;
+  physical_domain: PhysicalDomainProfile;
+  access_domain: AccessDomainProfile;
+  cyber_domain: CyberDomainProfile;
+  intelligence_domain: IntelligenceDomainProfile;
+  fusion_scores: FusionScores;
+  supporting_evidence_ids: string[];
+  contradictory_evidence_ids: string[];
+  missing_evidence_list: string[];
+  incident_summary: string;
+  investigation_steps: string[];
+  is_cyber_physical: boolean;
+  domains_active: string[];
+  generated_at: string;
+}
+
+export interface CyberPhysicalFusionScore {
+  situation_id: string;
+  is_cyber_physical: boolean;
+  domains_active: string[];
+  fusion_scores: FusionScores;
+  evidence_strength: EvidenceStrength;
+  ttp_relevance: IntelRelevance;
+  attribution_note: string;
 }

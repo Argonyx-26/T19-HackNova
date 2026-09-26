@@ -19,6 +19,7 @@ class IndicatorCreate(BaseModel):
 class IndicatorResponse(BaseModel):
     indicator_id: str
     indicator_type: IndicatorType
+    category: str = "NETWORK_OBSERVABLE"
     value: str
     threat_actor: Optional[str] = None
     campaign: Optional[str] = None
@@ -29,6 +30,8 @@ class IndicatorResponse(BaseModel):
     match_count: int
     last_seen_at: Optional[datetime] = None
     created_at: datetime
+    relevance: str = "UNRELATED"
+    linked_physical_behavior: Optional[str] = None
 
 class IndicatorMatch(BaseModel):
     indicator_id: str

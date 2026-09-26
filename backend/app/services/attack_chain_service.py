@@ -85,6 +85,8 @@ class AttackChainService:
                     last_seen_at=last_seen,
                     event_ids=matched_events,
                     technique_ids=list(set(matched_techniques)),
+                    matched_event_ids=matched_events,
+                    techniques=list(set(matched_techniques)),
                     evidence=evidence_text
                 )
             )

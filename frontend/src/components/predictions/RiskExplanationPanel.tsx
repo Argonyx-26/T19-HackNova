@@ -47,7 +47,7 @@ export const RiskExplanationPanel: React.FC<RiskExplanationPanelProps> = ({ risk
           </span>
           <span className="text-neutral-600">|</span>
           <span className="text-cyan-400 font-bold">
-            Velocity: {riskData.velocity >= 0 ? `+${riskData.velocity}` : riskData.velocity}
+            Velocity: {(riskData.velocity ?? 0) >= 0 ? `+${riskData.velocity ?? 0}` : riskData.velocity}
           </span>
         </div>
       </div>
@@ -55,10 +55,10 @@ export const RiskExplanationPanel: React.FC<RiskExplanationPanelProps> = ({ risk
       {/* Primary Risk Drivers */}
       <div className="mb-4">
         <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-2">
-          Mathematical Risk Drivers ({riskData.risk_drivers.length})
+          Mathematical Risk Drivers ({(riskData.risk_drivers || []).length})
         </div>
         <div className="space-y-2">
-          {riskData.risk_drivers.map((driver, idx) => (
+          {(riskData.risk_drivers || []).map((driver, idx) => (
             <div
               key={idx}
               className="p-2.5 bg-neutral-950/60 border border-neutral-800/80 rounded-lg text-xs text-neutral-300 flex items-start space-x-2"
@@ -76,7 +76,7 @@ export const RiskExplanationPanel: React.FC<RiskExplanationPanelProps> = ({ risk
           Factor Weight Contribution
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          {Object.entries(riskData.factor_weights).map(([k, v]) => (
+          {Object.entries(riskData.factor_weights || {}).map(([k, v]) => (
             <div key={k} className="p-2 bg-neutral-900/80 rounded border border-neutral-800/60">
               <div className="text-[10px] text-neutral-500 font-mono uppercase truncate">{k.replace('_', ' ')}</div>
               <div className="text-sm font-mono font-bold text-neutral-200">{Number(v).toFixed(2)}</div>
@@ -115,7 +115,7 @@ export const RiskExplanationPanel: React.FC<RiskExplanationPanelProps> = ({ risk
             </div>
             <div className="p-2 bg-neutral-950/60 rounded border border-neutral-800">
               <div className="text-[10px] text-neutral-500">Lead Time</div>
-              <div className="text-sm font-bold text-cyan-400">{metrics.average_lead_time_seconds.toFixed(0)}s</div>
+              <div className="text-sm font-bold text-cyan-400">{(metrics.average_lead_time_seconds ?? 0).toFixed(0)}s</div>
             </div>
           </div>
         </div>

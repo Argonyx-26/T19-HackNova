@@ -39,8 +39,13 @@ class BlastRadiusService:
         if graph is not None:
             # 1. Direct nodes in graph
             for node_id in graph.nodes():
-                meta = FACILITY_ASSET_REGISTRY.get(node_id, {})
-                asset_name = meta.get("name", node_id)
+                # Filter out raw event and root situation nodes
+                if node_id.startswith("evt-") or node_id == situation_id or node_id.startswith("sit-"):
+                    continue
+
+                clean_id = node_id.replace("ent-", "").replace("loc-", "")
+                meta = FACILITY_ASSET_REGISTRY.get(clean_id, FACILITY_ASSET_REGISTRY.get(node_id, {}))
+                asset_name = meta.get("name", clean_id)
                 asset_type = meta.get("type", "Asset")
                 criticality = meta.get("criticality", "MEDIUM")
 
@@ -48,25 +53,26 @@ class BlastRadiusService:
                     high_critical.append(asset_name)
 
                 # Count spread dimensions
-                if "Zone" in asset_type or "loc" in node_id.lower() or "room" in node_id.lower():
+                if "Zone" in asset_type or "loc" in clean_id.lower() or "room" in clean_id.lower():
                     spread_dimensions["physical_zones"] += 1
-                elif "Endpoint" in asset_type or "ep-" in node_id.lower() or "sw-" in node_id.lower():
+                elif "Endpoint" in asset_type or "ep-" in clean_id.lower() or "sw-" in clean_id.lower():
                     spread_dimensions["network_endpoints"] += 1
-                elif "Identity" in asset_type or "person" in node_id.lower() or "user" in node_id.lower():
+                elif "Identity" in asset_type or "person" in clean_id.lower() or "user" in clean_id.lower():
                     spread_dimensions["identities"] += 1
 
                 affected_assets.append(
                     BlastRadiusAsset(
-                        asset_id=node_id,
+                        asset_id=clean_id,
                         asset_name=asset_name,
                         asset_type=asset_type,
                         criticality=criticality,
                         hop_distance=1,
+                        is_direct=True,
                         compromise_likelihood=0.90,
-                        dependency_path=[situation_id, node_id]
+                        dependency_path=[situation_id, clean_id]
                     )
                 )
-                visited_ids.add(node_id)
+                visited_ids.add(clean_id)
                 direct_count += 1
 
             # 2. Add second-hop cascading dependencies (e.g. databases on same subnet or adjacent rooms)
@@ -78,6 +84,7 @@ class BlastRadiusService:
                         asset_type="Database",
                         criticality="CRITICAL",
                         hop_distance=2,
+                        is_direct=False,
                         compromise_likelihood=0.65,
                         dependency_path=[situation_id, "ep-10.0.4.120", "db-core-vault"]
                     )
@@ -94,6 +101,7 @@ class BlastRadiusService:
                         asset_type="NetworkSwitch",
                         criticality="CRITICAL",
                         hop_distance=2,
+                        is_direct=False,
                         compromise_likelihood=0.75,
                         dependency_path=[situation_id, "server-room-1", "sw-core-01"]
                     )
@@ -112,6 +120,7 @@ class BlastRadiusService:
                     asset_type="PhysicalZone",
                     criticality="HIGH",
                     hop_distance=1,
+                    is_direct=True,
                     compromise_likelihood=0.85,
                     dependency_path=[situation_id, situation.primary_location_id]
                 )
@@ -127,7 +136,7 @@ class BlastRadiusService:
             direct_affected_count=direct_count,
             potential_affected_count=potential_count,
             spread_dimensions=spread_dimensions,
-            high_critical_assets=list(set(high_critical)),
+            high_criticality_assets=list(set(high_critical)),
             affected_assets=affected_assets,
             risk_impact_summary=summary,
             calculated_at=datetime.now(timezone.utc)

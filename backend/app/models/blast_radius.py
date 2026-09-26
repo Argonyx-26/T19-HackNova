@@ -10,6 +10,7 @@ class BlastRadiusAsset(BaseModel):
     asset_type: str # PhysicalZone, Endpoint, Credential, Database, IoTGateway
     criticality: str # LOW, MEDIUM, HIGH, CRITICAL
     hop_distance: int
+    is_direct: bool = True
     compromise_likelihood: float = Field(ge=0.0, le=1.0)
     dependency_path: List[str] = Field(default_factory=list)
 

@@ -98,13 +98,17 @@ class MitreAttackService:
             result.append(ATTACKMapping(**d_clean))
         return result
 
-    def get_all_mappings(self, limit: int = 50) -> List[ATTACKMapping]:
+    def get_mappings(self, tactic: Optional[str] = None, limit: int = 50) -> List[ATTACKMapping]:
         col = self._get_collection()
-        docs = col.find({}).sort("created_at", -1).limit(limit)
+        query = {"tactic": tactic} if tactic else {}
+        docs = col.find(query).sort("created_at", -1).limit(limit)
         result = []
         for d in docs:
             d_clean = {k: v for k, v in d.items() if k != "_id"}
             result.append(ATTACKMapping(**d_clean))
         return result
+
+    def get_all_mappings(self, limit: int = 50) -> List[ATTACKMapping]:
+        return self.get_mappings(tactic=None, limit=limit)
 
 mitre_service = MitreAttackService()

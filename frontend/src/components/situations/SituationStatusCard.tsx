@@ -1,12 +1,13 @@
 import React from 'react';
-import { ShieldAlert, Users, MapPin, Activity } from 'lucide-react';
+import { ShieldAlert, Users, MapPin, Activity, ChevronRight } from 'lucide-react';
 import type { Situation, SituationState } from '../../types';
 
 interface SituationStatusCardProps {
   situation: Situation | null;
+  onOpenSituation?: () => void;
 }
 
-export const SituationStatusCard: React.FC<SituationStatusCardProps> = ({ situation }) => {
+export const SituationStatusCard: React.FC<SituationStatusCardProps> = ({ situation, onOpenSituation }) => {
   if (!situation) {
     return (
       <div className="bg-sentinel-surface border border-sentinel-border rounded-xl p-6 text-center text-slate-500 font-mono text-xs">
@@ -145,6 +146,16 @@ export const SituationStatusCard: React.FC<SituationStatusCardProps> = ({ situat
           </div>
         </div>
       </div>
+
+      {onOpenSituation && (
+        <button
+          onClick={onOpenSituation}
+          className="w-full py-2.5 px-3 bg-red-600/90 hover:bg-red-500 active:bg-red-700 text-white rounded-xl font-mono text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-md active:scale-[0.98] cursor-pointer border border-red-500/40"
+        >
+          <span>OPEN SITUATION INTELLIGENCE ROOM</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 };

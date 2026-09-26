@@ -6,10 +6,16 @@ import type {
   SimulatedIntervention,
   DecisionSupportRecommendation,
   SituationGraphData,
-  InterventionAction
+  InterventionAction,
+  SiteCampus,
+  TopologyConflict,
+  EvidenceShadow,
+  WhyNotDecision,
+  VLMSituationSynthesis,
+  SourceWeatherReport
 } from '../types';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -38,6 +44,15 @@ export const api = {
 
   async getEvent(eventId: string): Promise<NormalizedEvent> {
     const res = await fetch(`${API_BASE}/api/events/${eventId}`);
+    return handleResponse<NormalizedEvent>(res);
+  },
+
+  async ingestEvent(eventData: Record<string, any>): Promise<NormalizedEvent> {
+    const res = await fetch(`${API_BASE}/api/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(eventData)
+    });
     return handleResponse<NormalizedEvent>(res);
   },
 
@@ -210,5 +225,103 @@ export const api = {
   async getSystemMetrics() {
     const res = await fetch(`${API_BASE}/api/system/metrics`);
     return handleResponse<any>(res);
-  }
+  },
+
+  // -------------------------------------------------------------
+  // SENTINEL-X REASONING & DIGITAL TWIN APIS
+  // -------------------------------------------------------------
+  async getCampusDigitalTwin(): Promise<SiteCampus> {
+    const res = await fetch(`${API_BASE}/api/reasoning/topology/campus`);
+    return handleResponse<SiteCampus>(res);
+  },
+
+  async getTopologyConflicts(): Promise<TopologyConflict[]> {
+    const res = await fetch(`${API_BASE}/api/reasoning/topology/conflicts`);
+    return handleResponse<TopologyConflict[]>(res);
+  },
+
+  async getEvidenceShadow(situationId: string): Promise<EvidenceShadow> {
+    const res = await fetch(`${API_BASE}/api/reasoning/evidence/situations/${situationId}/shadow`);
+    return handleResponse<EvidenceShadow>(res);
+  },
+
+  async getWhyNotDecisions(situationId: string): Promise<WhyNotDecision[]> {
+    const res = await fetch(`${API_BASE}/api/reasoning/evidence/situations/${situationId}/why-not`);
+    return handleResponse<WhyNotDecision[]>(res);
+  },
+
+  async getVLMSituationSynthesis(situationId: string): Promise<VLMSituationSynthesis> {
+    const res = await fetch(`${API_BASE}/api/reasoning/vlm/situations/${situationId}`);
+    return handleResponse<VLMSituationSynthesis>(res);
+  },
+
+  async getSourceWeather(): Promise<SourceWeatherReport> {
+    const res = await fetch(`${API_BASE}/api/reasoning/source-weather`);
+    return handleResponse<SourceWeatherReport>(res);
+  },
+
+  async injectAdversarialSignal(injectionType: string, situationId: string = 'sit-20260925-001'): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/reasoning/simulation/inject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ injection_type: injectionType, situation_id: situationId }),
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getEmbeddingAdapter(): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/reasoning/embeddings/adapter`);
+    return handleResponse<any>(res);
+  },
+
+  async switchEmbeddingAdapter(adapterType: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/reasoning/embeddings/adapter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adapter_type: adapterType }),
+    });
+    return handleResponse<any>(res);
+  },
+
+  // ----------------------------------------------------------------
+  // CYBER-PHYSICAL INTELLIGENCE
+  // ----------------------------------------------------------------
+
+  async getPhysicalBehaviors(limit: number = 50): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/api/intelligence/physical-behaviors?limit=${limit}`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getPhysicalBehaviorsForSituation(situationId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/api/intelligence/physical-behaviors/situation/${situationId}`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getSecurityZones(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/api/intelligence/security-zones`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getThreatIntelRelevance(situationId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/intelligence/threat-intel/relevance/${situationId}`);
+    return handleResponse<any>(res);
+  },
+
+  async getThreatIntelIndicators(params?: { indicator_type?: string; category?: string }): Promise<any[]> {
+    const query = new URLSearchParams();
+    if (params?.indicator_type) query.set('indicator_type', params.indicator_type);
+    if (params?.category) query.set('category', params.category);
+    const res = await fetch(`${API_BASE}/api/intelligence/threat-intel/indicators?${query.toString()}`);
+    return handleResponse<any[]>(res);
+  },
+
+  async getThreatDNA(situationId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/reasoning/situations/${situationId}/threat-dna`);
+    return handleResponse<any>(res);
+  },
+
+  async getCyberPhysicalFusionScore(situationId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/intelligence/cyber-physical/fusion-score/${situationId}`);
+    return handleResponse<any>(res);
+  },
 };

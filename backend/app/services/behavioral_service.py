@@ -150,6 +150,15 @@ class BehavioralService:
             result.append(BehavioralAnomaly(**d_clean))
         return result
 
+    def list_anomalies(self, limit: int = 50) -> List[BehavioralAnomaly]:
+        col = self._get_anomalies_collection()
+        docs = col.find({}).sort("timestamp", -1).limit(limit)
+        result = []
+        for d in docs:
+            d_clean = {k: v for k, v in d.items() if k != "_id"}
+            result.append(BehavioralAnomaly(**d_clean))
+        return result
+
     def get_all_baselines(self) -> List[BehavioralBaseline]:
         col = self._get_baselines_collection()
         docs = col.find({})

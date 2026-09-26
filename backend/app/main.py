@@ -19,6 +19,8 @@ from backend.app.api.routes.context import router as context_router
 from backend.app.api.routes.intelligence import router as intelligence_router
 from backend.app.api.routes.governance import router as governance_router
 from backend.app.api.routes.system import router as system_router
+from backend.app.api.routes.reasoning import router as reasoning_router
+from backend.app.api.routes.video import router as video_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +28,16 @@ async def lifespan(app: FastAPI):
     connected = db_manager.connect()
     if connected:
         ensure_indexes(db_manager)
+    # Check if database has any situations; if empty, seed demo scenario in background
+    try:
+        from backend.app.services.situation_service import situation_service
+        if not situation_service.list_situations():
+            from backend.app.api.routes.simulation import run_scenario_stream
+            import threading
+            threading.Thread(target=run_scenario_stream, daemon=True).start()
+    except Exception as e:
+        import logging
+        logging.getLogger("sentinel.main").warning(f"Auto-seed check skipped: {e}")
     yield
     # Shutdown lifecycle
     db_manager.close()
@@ -54,6 +66,8 @@ app.include_router(context_router)
 app.include_router(intelligence_router)
 app.include_router(governance_router)
 app.include_router(system_router)
+app.include_router(reasoning_router)
+app.include_router(video_router)
 
 @app.get("/health", tags=["System"])
 def health_check():

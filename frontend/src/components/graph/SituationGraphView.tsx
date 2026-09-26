@@ -71,7 +71,6 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
 
     // Deep copy nodes to avoid mutating props
     const nodes: SimNode[] = graphData.nodes.map((n, i) => {
-      // Intelligent initial placement in a circle around center to avoid knotting
       const angle = (i / graphData.nodes.length) * 2 * Math.PI;
       const initialDist = n.node_type === 'Situation' ? 0 : n.node_type === 'Event' ? 140 : 210;
       return {
@@ -87,7 +86,6 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
       relationship: e.relationship || 'ASSOCIATED_WITH',
     }));
 
-    // Create D3 Force Simulation with strong repulsion & collision prevention
     const simulation = d3
       .forceSimulation<SimNode>(nodes)
       .force(
@@ -98,24 +96,17 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
           .distance((d) => {
             const rel = d.relationship;
             if (rel === 'TRIGGERED') return 95;
-            if (rel === 'ACCESSED') return 110;
-            return 125;
+            if (rel === 'OCCURRED_AT') return 120;
+            if (rel === 'INVOLVED') return 110;
+            return 130;
           })
           .strength(0.6)
       )
-      .force('charge', d3.forceManyBody().strength(-520).distanceMax(450))
-      .force('collide', d3.forceCollide().radius(48).iterations(3))
+      .force('charge', d3.forceManyBody().strength(-380))
       .force('center', d3.forceCenter(width / 2, height / 2).strength(0.08))
-      .force('x', d3.forceX(width / 2).strength(0.04))
-      .force('y', d3.forceY(height / 2).strength(0.04))
-      .alphaDecay(0.028);
+      .force('collision', d3.forceCollide().radius(40).iterations(3));
 
     simulation.on('tick', () => {
-      // Keep nodes bounded inside the canvas
-      nodes.forEach((n) => {
-        n.x = Math.max(50, Math.min(width - 50, n.x));
-        n.y = Math.max(45, Math.min(height - 45, n.y));
-      });
       setSimNodes([...nodes]);
       setSimLinks([...links]);
     });
@@ -127,14 +118,12 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
     };
   }, [graphData]);
 
-  // Find active / selected node details
   const activeNode = useMemo(() => {
     const targetId = selectedNodeId || hoveredNodeId;
     if (!targetId) return null;
     return simNodes.find((n) => n.id === targetId) || null;
   }, [selectedNodeId, hoveredNodeId, simNodes]);
 
-  // Find connected neighbors and edges for highlight
   const { connectedNodeIds, connectedEdgeIndices } = useMemo(() => {
     const focusId = selectedNodeId || hoveredNodeId;
     if (!focusId) return { connectedNodeIds: new Set<string>(), connectedEdgeIndices: new Set<number>() };
@@ -156,33 +145,33 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
     return { connectedNodeIds: nodeIds, connectedEdgeIndices: edgeIndices };
   }, [selectedNodeId, hoveredNodeId, simLinks]);
 
-  // Node Color Theme
+  // Warm Sentinel-X Obsidian & Gold Node Visuals
   const getNodeVisuals = (node: GraphNode) => {
     switch (node.node_type) {
       case 'Situation':
         return {
-          stroke: '#ef4444',
-          fill: '#2a090e',
-          glow: '#ef4444',
+          stroke: '#f0d28f',
+          fill: '#2a1608',
+          glow: 'rgba(240, 210, 143, 0.6)',
           icon: ShieldAlert,
-          radius: 18,
+          radius: 19,
           label: 'SITUATION'
         };
       case 'Person':
         return {
-          stroke: '#f59e0b',
-          fill: '#241604',
-          glow: '#f59e0b',
+          stroke: '#e8b25c',
+          fill: '#24180c',
+          glow: 'rgba(232, 178, 92, 0.5)',
           icon: User,
-          radius: 14,
+          radius: 15,
           label: 'PERSON'
         };
       case 'Device':
       case 'Endpoint':
         return {
-          stroke: '#38bdf8',
-          fill: '#051829',
-          glow: '#38bdf8',
+          stroke: '#c9a15d',
+          fill: '#1c140a',
+          glow: 'rgba(201, 161, 93, 0.45)',
           icon: Server,
           radius: 14,
           label: 'ENDPOINT'
@@ -190,18 +179,18 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
       case 'Camera':
       case 'Sensor':
         return {
-          stroke: '#a855f7',
-          fill: '#1e0a2e',
-          glow: '#a855f7',
+          stroke: '#f0d28f',
+          fill: '#20160b',
+          glow: 'rgba(240, 210, 143, 0.45)',
           icon: Camera,
-          radius: 13,
+          radius: 14,
           label: 'SENSOR'
         };
       case 'Location':
         return {
-          stroke: '#10b981',
-          fill: '#041f17',
-          glow: '#10b981',
+          stroke: '#3fae63',
+          fill: '#091c10',
+          glow: 'rgba(63, 174, 99, 0.4)',
           icon: MapPin,
           radius: 15,
           label: 'LOCATION'
@@ -210,9 +199,9 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
       default:
         const isCritical = node.severity && node.severity >= 0.7;
         return {
-          stroke: isCritical ? '#f43f5e' : '#818cf8',
-          fill: isCritical ? '#260810' : '#0e1026',
-          glow: isCritical ? '#f43f5e' : '#818cf8',
+          stroke: isCritical ? '#e5502f' : '#c9a15d',
+          fill: isCritical ? '#290b07' : '#1c140a',
+          glow: isCritical ? 'rgba(229, 80, 47, 0.5)' : 'rgba(201, 161, 93, 0.35)',
           icon: AlertTriangle,
           radius: 13,
           label: 'EVENT'
@@ -220,7 +209,6 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
     }
   };
 
-  // Node Drag Handlers
   const handleNodeMouseDown = (e: React.MouseEvent, node: SimNode) => {
     e.stopPropagation();
     draggedNodeRef.current = node;
@@ -259,7 +247,6 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
     setIsPanning(false);
   };
 
-  // Background Pan Handlers
   const handleBackgroundMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) {
       setIsPanning(true);
@@ -270,7 +257,6 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
     }
   };
 
-  // Zoom Controls
   const handleZoom = (factor: number) => {
     setZoomLevel((prev) => Math.max(0.5, Math.min(2.5, prev * factor)));
   };
@@ -286,14 +272,13 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
 
   if (!graphData || graphData.nodes.length === 0) {
     return (
-      <div className="bg-[#080d1a] border border-neutral-800 rounded-2xl p-8 text-center text-xs font-mono text-neutral-500 shadow-xl">
-        <Radio className="w-5 h-5 text-neutral-600 mx-auto mb-2 animate-pulse" />
+      <div className="bg-[#0b0805]/90 border border-[#c9a15d]/20 rounded-2xl p-8 text-center text-xs font-mono text-[#a3927a] shadow-xl">
+        <Radio className="w-5 h-5 text-[#f0d28f] mx-auto mb-2 animate-pulse" />
         No active situation topology graph available.
       </div>
     );
   }
 
-  // Filtered nodes
   const visibleNodes = simNodes.filter((n) => {
     if (filterType === 'ALL') return true;
     if (filterType === 'EVENTS') return n.node_type === 'Event' || n.node_type === 'Situation';
@@ -307,7 +292,7 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
   return (
     <div
       ref={containerRef}
-      className={`bg-[#060a16] border border-neutral-800/90 rounded-2xl p-5 space-y-4 shadow-2xl relative select-none font-sans overflow-hidden ${
+      className={`bg-[#0b0805]/95 border border-[#c9a15d]/30 rounded-3xl p-5 md:p-6 space-y-4 shadow-[0_16px_50px_rgba(0,0,0,0.85)] relative select-none font-sans overflow-hidden backdrop-blur-2xl ${
         isFullscreen ? 'fixed inset-4 z-50 flex flex-col justify-between' : ''
       }`}
       onMouseMove={handleMouseMove}
@@ -315,16 +300,16 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
       onMouseLeave={handleMouseUp}
     >
       {/* 1. Header & Live Metrics Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-3 z-10">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#c9a15d]/20 pb-3.5 z-10">
         <div className="flex items-center space-x-2.5">
-          <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center">
-            <GitGraph className="w-4 h-4 text-cyan-400" />
+          <div className="w-8 h-8 rounded-xl bg-[#24170c] border border-[#c9a15d]/40 flex items-center justify-center text-[#f0d28f]">
+            <GitGraph className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-xs font-mono uppercase font-bold tracking-wider text-neutral-200">
+            <h2 className="text-xs font-mono uppercase font-bold tracking-wider text-[#fff6e4]">
               NetworkX Threat Topology Graph
             </h2>
-            <div className="text-[10px] text-neutral-500 font-mono">
+            <div className="text-[10px] text-[#a3927a] font-mono">
               Dynamic situational entity & event correlation lattice
             </div>
           </div>
@@ -332,43 +317,43 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
 
         {/* Live Metrics HUD */}
         <div className="flex items-center space-x-2 text-[11px] font-mono">
-          <div className="px-2.5 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400">
-            Nodes: <strong className="text-cyan-400">{graphData.metrics.node_count}</strong>
+          <div className="px-3 py-1 rounded-xl bg-[#140e08] border border-[#c9a15d]/25 text-[#d5c7b3]">
+            Nodes: <strong className="text-[#f0d28f]">{graphData.metrics.node_count}</strong>
           </div>
-          <div className="px-2.5 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400">
-            Edges: <strong className="text-amber-400">{graphData.metrics.edge_count}</strong>
+          <div className="px-3 py-1 rounded-xl bg-[#140e08] border border-[#c9a15d]/25 text-[#d5c7b3]">
+            Edges: <strong className="text-[#e8b25c]">{graphData.metrics.edge_count}</strong>
           </div>
-          <div className="hidden sm:block px-2.5 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400">
+          <div className="hidden sm:block px-3 py-1 rounded-xl bg-[#140e08] border border-[#c9a15d]/25 text-[#d5c7b3]">
             Density: <strong className="text-emerald-400">{graphData.metrics.density}</strong>
           </div>
 
           {/* Canvas Controls */}
-          <div className="flex items-center space-x-1 pl-2 border-l border-neutral-800">
+          <div className="flex items-center space-x-1 pl-2 border-l border-[#c9a15d]/20">
             <button
               onClick={() => handleZoom(1.15)}
               title="Zoom In"
-              className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[#1f150b] text-[#a3927a] hover:text-[#fff6e4] transition cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => handleZoom(0.85)}
               title="Zoom Out"
-              className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[#1f150b] text-[#a3927a] hover:text-[#fff6e4] transition cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleReset}
               title="Reset View"
-              className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[#1f150b] text-[#a3927a] hover:text-[#fff6e4] transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               title="Toggle Fullscreen"
-              className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[#1f150b] text-[#a3927a] hover:text-[#fff6e4] transition cursor-pointer"
             >
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
@@ -377,17 +362,17 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
       </div>
 
       {/* 2. Filter Pills Bar */}
-      <div className="flex items-center justify-between text-xs font-mono z-10">
+      <div className="flex items-center justify-between text-xs font-mono z-10 flex-wrap gap-2">
         <div className="flex items-center space-x-1.5">
-          <span className="text-[10px] text-neutral-500 uppercase tracking-wider mr-1">Filter:</span>
+          <span className="text-[10px] text-[#a3927a] uppercase tracking-wider mr-1">Filter:</span>
           {['ALL', 'EVENTS', 'ENTITIES', 'LOCATIONS'].map((f) => (
             <button
               key={f}
               onClick={() => setFilterType(f)}
-              className={`px-2.5 py-0.5 rounded text-[10px] transition-all font-mono ${
+              className={`px-3 py-1 rounded-xl text-[10px] transition-all font-mono font-bold cursor-pointer ${
                 filterType === f
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm'
-                  : 'bg-neutral-900/60 text-neutral-400 border border-neutral-800 hover:text-neutral-200'
+                  ? 'bg-gradient-to-b from-[#3a2814] to-[#1a1107] text-[#fff6e4] border border-[#f0d28f]/60 shadow-[0_0_12px_rgba(240,210,143,0.25)]'
+                  : 'bg-[#140e08]/70 text-[#a3927a] border border-[#c9a15d]/20 hover:text-[#fff6e4]'
               }`}
             >
               {f}
@@ -395,22 +380,22 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
           ))}
         </div>
 
-        <div className="text-[10px] text-neutral-500 hidden sm:block">
+        <div className="text-[10px] text-[#a3927a] hidden sm:block">
           Click or drag nodes to inspect relationships • Scroll to zoom
         </div>
       </div>
 
       {/* 3. Interactive SVG Topology Viewport */}
       <div
-        className="relative w-full h-[400px] border border-neutral-800/80 rounded-xl bg-[#03060f] overflow-hidden cursor-crosshair shadow-inner"
+        className="relative w-full h-[400px] border border-[#c9a15d]/25 rounded-2xl bg-[#070503] overflow-hidden cursor-crosshair shadow-inner"
         onMouseDown={handleBackgroundMouseDown}
       >
-        {/* Subtle Background Grid Pattern */}
+        {/* Warm Gold Dot Matrix Grid Pattern */}
         <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
+          className="absolute inset-0 opacity-15 pointer-events-none"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, #38bdf8 1px, transparent 0)`,
-            backgroundSize: '32px 32px'
+            backgroundImage: `radial-gradient(circle at 1px 1px, #f0d28f 1px, transparent 0)`,
+            backgroundSize: '28px 28px'
           }}
         />
 
@@ -422,7 +407,7 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
           <defs>
             {/* Arrowhead Markers */}
             <marker
-              id="arrow-default"
+              id="arrow-gold"
               viewBox="0 0 10 10"
               refX="22"
               refY="5"
@@ -430,7 +415,7 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
               markerHeight="6"
               orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155" />
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="#c9a15d" />
             </marker>
             <marker
               id="arrow-active"
@@ -441,30 +426,19 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
               markerHeight="7"
               orient="auto-start-reverse"
             >
-              <path d="M 0 0.5 L 10 5 L 0 9.5 z" fill="#ef4444" />
-            </marker>
-            <marker
-              id="arrow-cyan"
-              viewBox="0 0 10 10"
-              refX="22"
-              refY="5"
-              markerWidth="7"
-              markerHeight="7"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 0.5 L 10 5 L 0 9.5 z" fill="#06b6d4" />
+              <path d="M 0 0.5 L 10 5 L 0 9.5 z" fill="#f0d28f" />
             </marker>
 
             {/* Glowing Radial Gradients */}
             <radialGradient id="situationHalo" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+              <stop offset="0%" stopColor="#f0d28f" stopOpacity="0.7" />
+              <stop offset="100%" stopColor="#f0d28f" stopOpacity="0" />
             </radialGradient>
           </defs>
 
           {/* Transformed Canvas Container for Pan & Zoom */}
           <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoomLevel})`}>
-            {/* RENDER EDGES (Curved Paths with dynamic highlighting) */}
+            {/* RENDER EDGES */}
             {simLinks.map((link, idx) => {
               const src = typeof link.source === 'object' ? link.source : simNodes.find((n) => n.id === link.source);
               const tgt = typeof link.target === 'object' ? link.target : simNodes.find((n) => n.id === link.target);
@@ -474,14 +448,9 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
 
               const isConnected = connectedEdgeIndices.has(idx);
               const isAnyFocus = selectedNodeId || hoveredNodeId;
-              const edgeAlpha = isConnected ? 1 : isAnyFocus ? 0.12 : 0.45;
-              const strokeColor = isConnected
-                ? src.node_type === 'Situation' || tgt.node_type === 'Situation'
-                  ? '#ef4444'
-                  : '#06b6d4'
-                : '#334155';
+              const edgeAlpha = isConnected ? 1 : isAnyFocus ? 0.15 : 0.45;
+              const strokeColor = isConnected ? '#f0d28f' : '#7a5a2e';
 
-              // Quadratic curve calculation for clean non-overlapping arcs
               const dx = tgt.x - src.x;
               const dy = tgt.y - src.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
@@ -500,13 +469,7 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                     strokeWidth={isConnected ? 2.4 : 1.2}
                     strokeOpacity={edgeAlpha}
                     strokeDasharray={link.relationship === 'TRIGGERED' ? '4 3' : 'none'}
-                    markerEnd={
-                      isConnected
-                        ? strokeColor === '#ef4444'
-                          ? 'url(#arrow-active)'
-                          : 'url(#arrow-cyan)'
-                        : 'url(#arrow-default)'
-                    }
+                    markerEnd={isConnected ? 'url(#arrow-active)' : 'url(#arrow-gold)'}
                   />
 
                   {/* Relationship Tag on Hover / Focus */}
@@ -517,15 +480,15 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                         y="-8"
                         width="76"
                         height="16"
-                        rx="3"
-                        fill="#050914ee"
-                        stroke={strokeColor}
+                        rx="4"
+                        fill="#120c06ee"
+                        stroke="#f0d28f"
                         strokeWidth="0.8"
                       />
                       <text
                         x="0"
                         y="3"
-                        fill="#cbd5e1"
+                        fill="#f0d28f"
                         fontSize="8"
                         fontFamily="monospace"
                         textAnchor="middle"
@@ -594,7 +557,7 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                     fill={visual.fill}
                     stroke={visual.stroke}
                     strokeWidth={isSelected || isHovered ? 2.6 : 1.8}
-                    className="filter drop-shadow-[0_0_8px_rgba(6,182,212,0.3)] transition-all"
+                    className="filter drop-shadow-[0_0_10px_rgba(201,161,93,0.35)] transition-all"
                   />
 
                   {/* Embedded Icon / Glyph */}
@@ -620,15 +583,15 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                       y="-7"
                       width={Math.min(150, Math.max(70, node.label.length * 6.8))}
                       height="14"
-                      rx="3"
-                      fill="#060b17ee"
-                      stroke={isSelected || isHovered ? visual.stroke : '#1e293b'}
+                      rx="4"
+                      fill="#120c06ee"
+                      stroke={isSelected || isHovered ? visual.stroke : '#3a2814'}
                       strokeWidth="0.8"
                     />
                     <text
                       x="0"
                       y="3"
-                      fill={isSelected || isHovered ? '#ffffff' : '#94a3b8'}
+                      fill={isSelected || isHovered ? '#ffffff' : '#d5c7b3'}
                       fontSize="9"
                       fontFamily="monospace"
                       textAnchor="middle"
@@ -645,14 +608,14 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
 
         {/* 4. Interactive Tactical Node Inspector Flyout */}
         {activeNode && (
-          <div className="absolute top-3 right-3 w-80 bg-[#090e1eee]/95 backdrop-blur-md border border-neutral-700/80 rounded-xl p-4 text-xs font-mono shadow-2xl z-30 animate-in fade-in slide-in-from-right-2">
-            <div className="flex items-center justify-between pb-2 border-b border-neutral-800 mb-2.5">
+          <div className="absolute top-3 right-3 w-80 bg-[#0d0905]/98 backdrop-blur-2xl border border-[#c9a15d]/40 rounded-2xl p-4 text-xs font-mono shadow-2xl z-30 animate-fadeIn">
+            <div className="flex items-center justify-between pb-2 border-b border-[#c9a15d]/20 mb-2.5">
               <div className="flex items-center space-x-2">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: getNodeVisuals(activeNode).stroke }}
                 ></span>
-                <span className="font-bold text-white text-[11px] truncate max-w-[190px]">
+                <span className="font-bold text-[#fff6e4] text-[11px] truncate max-w-[190px]">
                   {activeNode.label}
                 </span>
               </div>
@@ -661,7 +624,7 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                   setSelectedNodeId(null);
                   setHoveredNodeId(null);
                 }}
-                className="text-neutral-500 hover:text-neutral-300"
+                className="text-[#a3927a] hover:text-white"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -669,20 +632,20 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
 
             <div className="space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500">TYPE:</span>
-                <span className="text-cyan-400 font-semibold">{activeNode.node_type}</span>
+                <span className="text-[#a3927a]">TYPE:</span>
+                <span className="text-[#f0d28f] font-semibold">{activeNode.node_type}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500">ID:</span>
-                <span className="text-neutral-300 font-mono text-[10px]">{activeNode.id}</span>
+                <span className="text-[#a3927a]">ID:</span>
+                <span className="text-[#d5c7b3] font-mono text-[10px]">{activeNode.id}</span>
               </div>
 
               {activeNode.severity !== undefined && (
                 <div className="flex items-center justify-between">
-                  <span className="text-neutral-500">SEVERITY:</span>
+                  <span className="text-[#a3927a]">SEVERITY:</span>
                   <span
                     className={`font-bold ${
-                      activeNode.severity >= 0.7 ? 'text-red-400' : 'text-amber-400'
+                      activeNode.severity >= 0.7 ? 'text-rose-400' : 'text-amber-400'
                     }`}
                   >
                     {activeNode.severity} / 1.0
@@ -690,20 +653,11 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                 </div>
               )}
 
-              {activeNode.status && (
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-500">STATUS:</span>
-                  <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-400 font-bold text-[10px]">
-                    {activeNode.status}
-                  </span>
-                </div>
-              )}
-
               {/* Connected Peers Summary */}
-              <div className="pt-2 border-t border-neutral-800/80 mt-2">
-                <div className="text-[10px] text-neutral-400 font-bold mb-1 flex items-center justify-between">
+              <div className="pt-2 border-t border-[#c9a15d]/20 mt-2">
+                <div className="text-[10px] text-[#a3927a] font-bold mb-1 flex items-center justify-between">
                   <span>CONNECTED TOPOLOGY:</span>
-                  <span className="text-cyan-400">
+                  <span className="text-[#f0d28f]">
                     {connectedNodeIds.size > 0 ? connectedNodeIds.size - 1 : 0} links
                   </span>
                 </div>
@@ -730,12 +684,12 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
                         <div
                           key={i}
                           onClick={() => setSelectedNodeId(peerId)}
-                          className="flex items-center justify-between p-1 rounded bg-neutral-900/60 hover:bg-neutral-800 cursor-pointer text-[10px] text-neutral-300 transition-colors"
+                          className="flex items-center justify-between p-1 rounded-lg bg-[#1a1209] hover:bg-[#271b0e] cursor-pointer text-[10px] text-[#d5c7b3] transition-colors"
                         >
                           <span className="truncate max-w-[140px]">
                             {isSrc ? '→' : '←'} {peerNode?.label || peerId}
                           </span>
-                          <span className="text-[9px] text-neutral-500">{l.relationship}</span>
+                          <span className="text-[9px] text-[#a3927a]">{l.relationship}</span>
                         </div>
                       );
                     })}
@@ -746,30 +700,26 @@ export const SituationGraphView: React.FC<SituationGraphViewProps> = ({ graphDat
         )}
       </div>
 
-      {/* 5. Clean Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-mono text-neutral-400 pt-1">
+      {/* 5. Clean Warm Gold Legend */}
+      <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-mono text-[#a3927a] pt-1">
         <div className="flex items-center space-x-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-500/20"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#f0d28f] ring-2 ring-[#f0d28f]/30"></span>
           <span>Situation Root</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-amber-400/20"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#e8b25c] ring-2 ring-[#e8b25c]/30"></span>
           <span>Person / Identity</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-sky-400 ring-2 ring-sky-400/20"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#c9a15d] ring-2 ring-[#c9a15d]/30"></span>
           <span>Endpoint / Device</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-400 ring-2 ring-purple-400/20"></span>
-          <span>Camera / Sensor</span>
-        </div>
-        <div className="flex items-center space-x-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#3fae63] ring-2 ring-[#3fae63]/30"></span>
           <span>Location Zone</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-500/20"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#e5502f] ring-2 ring-[#e5502f]/30"></span>
           <span>Critical Event</span>
         </div>
       </div>

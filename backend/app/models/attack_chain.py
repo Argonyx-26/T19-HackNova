@@ -24,6 +24,8 @@ class AttackChainStage(BaseModel):
     last_seen_at: Optional[datetime] = None
     event_ids: List[str] = Field(default_factory=list)
     technique_ids: List[str] = Field(default_factory=list)
+    matched_event_ids: List[str] = Field(default_factory=list)
+    techniques: List[str] = Field(default_factory=list)
     evidence: str = ""
 
 class AttackChain(BaseModel):
