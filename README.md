@@ -107,6 +107,7 @@ Modern enterprise security operations centers (SOCs) are overwhelmed by thousand
 ### 🌐 Live Hosted Application
 Access the production deployment immediately in your browser:
 👉 **[https://seltinal-x.vercel.app/](https://seltinal-x.vercel.app/)**
+video link: https://youtu.be/UqK069mrCYs
 
 ---
 
